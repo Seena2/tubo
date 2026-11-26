@@ -79,3 +79,15 @@ jobs:
       - name: cleanup container
         if: always() #this step will always run, even if the previous steps fail, this is to ensure that the container is stopped and removed after the health check
         run: docker stop tubo-container && docker rm tubo-container || true #stops and removes the container after the health check, this is to free up resources
+      
+      - name: Load docker image into cluster
+        run: kind load docker-image tubo-image:latest --name kind-cluster
+
+      - name: Deploy to kubernetes
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+
+      - name: Wait for deployment to be ready/ rollout to finish
+        run: |
+          kubectl rollout status deployment/tubo-deployment --timeout=60s

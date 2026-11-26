@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tubo-deployment
+  labels:
+    app: tubo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tubo
+  template:
+    metadata:
+      labels:
+        app: tubo
+    spec:
+      containers:
+        - name: tubo
+          image: tubo-image:latest
+          imagePullPolicy: IfNotPresent # Prevents ErrImagePull when using kind load docker-image
+          ports:
+            - containerPort: 5000
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tubo-secrets
+                  key: API_KEY
+                  optional: true # Allows pod to start even if you haven't created tubo-secrets yet
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 3
+            periodSeconds: 10

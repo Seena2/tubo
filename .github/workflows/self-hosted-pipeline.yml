@@ -1,4 +1,4 @@
-name: self-hosted CI pipeline
+name: self-hosted CI pipeline 
 
 on:
   push:

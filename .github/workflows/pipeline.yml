@@ -67,8 +67,8 @@ jobs:
             sleep 5
           done
 
-          echo "application failed to start..."
-          exit 1
+          echo "Application failed to start. Container logs:"
+          docker logs tubo-container
          
       - name: Health check
         run: curl -f http://localhost:5000/ || exit 1 #checks if the application is running, if not the pipeline fails

@@ -15,7 +15,8 @@ on:
 
 env:
   UV_CACHE_DIR: ${{ github.workspace }}/.uv_cache #cache directory for uv, this is a hidden directory in the root of the project, it is used to cache dependencies and speed up the pipeline
- 
+  API_KEY: ${{secrets.API_KEY}} #this is a secret that is set in the repository settings, it is used to pass the API key to the container, this is a good practice to avoid hardcoding secrets in the code
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest #runs on fresh machine, no hidden state, no surpises from previous run
@@ -52,11 +53,14 @@ jobs:
 
       - name: Build docker image
         run: docker build -t tubo-image:latest . #builds a docker image with the tag tubo:latest, this is used to test if the code can be built into a docker image  
-      
-      - name: Run container
-        run: docker run -d -p 5000:5000 --name tubo-container tubo-image:latest 
 
-      - name: Health check (wait for application)
+      - name: Run container
+        run: docker run -d -p -e API_KEY=$API_KEY 5000:5000 --name tubo-container tubo-image:latest 
+
+      - name: show logs
+        run: docker logs tubo-container || true 
+
+      - name: wait for application to start and check if it is healthy
         run: |
           for i in {1..10}; do
             if curl -fs http://localhost:5000/; then

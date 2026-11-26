@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v6 #clones the repository into the runner, hence without the code pipeline has nothing to process
       
       - name: install uv and python
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.4.0
         with:
           enable-cache: true
           python-version: "3.14"

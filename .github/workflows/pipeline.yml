@@ -56,22 +56,20 @@ jobs:
       - name: Run container
         run: docker run -d -p 5000:5000 --name tubo-container tubo-image:latest 
 
-      - name: Wait for application to start(Fail not ready)
+      - name: Health check (wait for application)
         run: |
           for i in {1..10}; do
-            if curl -f http://localhost:5000/; then
-              echo "Application is up and running"
+            if curl -fs http://localhost:5000/; then
+              echo ""
+              echo "Application is up and healthy!"
               exit 0
             fi
-            echo "waiting for application to start..."
-            sleep 5
+            echo "Waiting for application to start ($i/10)..."
+            sleep 3
           done
-
-          echo "Application failed to start. Container logs:"
-          docker logs tubo-container
-         
-      - name: Health check
-        run: curl -f http://localhost:5000/ || exit 1 #checks if the application is running, if not the pipeline fails
+          echo "Application failed health check. Container logs:"
+          docker logs tubo-container || true
+          exit 1
 
       - name: cleanup container
         if: always() #this step will always run, even if the previous steps fail, this is to ensure that the container is stopped and removed after the health check

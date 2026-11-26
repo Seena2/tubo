@@ -1,0 +1,78 @@
+name: CI pipeline
+
+on:
+  push:
+    paths:
+      - '**.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'tests/**'
+      - 'Dockerfile'
+      - '.github/workflows/pipeline.yml'
+    branches: [main, dev] 
+  pull_request:
+    branches: [main, dev]
+
+env:
+  UV_CACHE_DIR: ${{ github.workspace }}/.uv_cache #cache directory for uv, this is a hidden directory in the root of the project, it is used to cache dependencies and speed up the pipeline
+  API_KEY: ${{secrets.API_KEY}} #this is a secret that is set in the repository settings, it is used to pass the API key to the container, this is a good practice to avoid hardcoding secrets in the code
+
+jobs:
+  build-and-test:
+    # runs-on: ubuntu-latest #runs on fresh machine, no hidden state, no surpises from previous run
+    runs-on: self-hosted #runs on self-hosted runner, this is a machine that you own and control, it can be a physical machine or a virtual machine, this is useful for testing on specific environements, or for running on machines with specific hardware or software requirements. It is also useful for running on machines that are not connected to the internet, or for running on machines that have specific security requirements.
+        
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6 #clones the repository into the runner, hence without the code pipeline has nothing to process
+      
+      - name: install uv and python
+        uses: astral-sh/setup-uv@v10.4.0
+        with:
+          enable-cache: true
+          python-version: "3.14"
+
+      # installs every dependency from uv.lock without modifying the lockfile. The --locked flag ensures CI fails if the lockfile is out of date. The --all-extras flag installs all optional dependency groups defined in pyproject.toml;
+      # if your project has no optional dependencies, this flag is harmless but unnecessary. The --dev flag includes development dependencies like pytest and ruff.
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+      
+      - name: Lint with Ruff
+        run: uv run ruff check .
+
+      - name: Check formatting with Ruff
+        run: uv run ruff format --check .
+
+      - name: Run tests
+        run: uv run pytest
+
+      - name: cleanup old container
+        run: docker stop tubo-container && docker rm tubo-container || true 
+
+      - name: Build docker image
+        run: docker build -t tubo-image:latest . #builds a docker image with the tag tubo:latest, this is used to test if the code can be built into a docker image  
+
+      - name: Run container
+        run: docker run -d -p  5000:5000  --name tubo-container tubo-image:latest 
+
+      - name: show logs
+        run: docker logs tubo-container || true 
+
+      - name: wait for application to start and check if it is healthy
+        run: |
+          for i in {1..10}; do
+            if curl -fs http://localhost:5000/; then
+              echo ""
+              echo "Application is up and healthy!"
+              exit 0
+            fi
+            echo "Waiting for application to start ($i/10)..."
+            sleep 3
+          done
+          echo "Application failed health check. Container logs:"
+          docker logs tubo-container || true
+          exit 1
+
+      - name: cleanup container
+        if: always() #this step will always run, even if the previous steps fail, this is to ensure that the container is stopped and removed after the health check
+        run: docker stop tubo-container && docker rm tubo-container || true #stops and removes the container after the health check, this is to free up resources

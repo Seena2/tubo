@@ -19,8 +19,9 @@ env:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest #runs on fresh machine, no hidden state, no surpises from previous run
-    
+    # runs-on: ubuntu-latest #runs on fresh machine, no hidden state, no surpises from previous run
+    runs-on: self-hosted #runs on self-hosted runner, this is a machine that you own and control, it can be a physical machine or a virtual machine, this is useful for testing on specific environements, or for running on machines with specific hardware or software requirements. It is also useful for running on machines that are not connected to the internet, or for running on machines that have specific security requirements.
+        
     steps:
       - name: checkout code
         uses: actions/checkout@v6 #clones the repository into the runner, hence without the code pipeline has nothing to process

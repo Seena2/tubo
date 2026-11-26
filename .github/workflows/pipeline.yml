@@ -40,6 +40,7 @@ jobs:
       - run: uv sync --locked --all-extras --dev
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      - run: uv run pytest
       
       - name: List file
         run: ls -la # view what the pipeline see, used for debuging
@@ -53,8 +54,23 @@ jobs:
       - name: Run container
         run: docker run -d -p 5000:5000 --name tubo-container tubo-image:latest 
 
-      - name: Wait for application to start
-        run: sleep 10 #waits for the application to start, this is used to ensure that the application is running before running the tests
+      - name: Wait for application to start(Fail not ready)
+        run: |
+          for i in {1..10}; do
+            if curl -f http://localhost:5000/; then
+              echo "Application is up and running"
+              exit 0
+            fi
+            echo "waiting for application to start..."
+            sleep 5
+          done
 
-      - name: Fake test
-        run: uv run pytest
+          echo "application failed to start..."
+          exit 1
+         
+      - name: Health check
+        run: curl -f http://localhost:5000/ || exit 1 #checks if the application is running, if not the pipeline fails
+
+      - name: cleanup container
+        if always() #this step will always run, even if the previous steps fail, this is to ensure that the container is stopped and removed after the health check
+        run: docker stop tubo-container && docker rm tubo-container #stops and removes the container after the health check, this is to free up resources

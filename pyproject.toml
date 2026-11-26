@@ -14,9 +14,8 @@ dependencies = [
 [project.scripts]
 tubo = "tubo:main"
 
-[build-system]
-requires = ["uv_build>=0.13.10,<0.14.0"]
-build-backend = "uv_build"
+[tool.uv]
+package = false
 
 [dependency-groups]
 dev = [

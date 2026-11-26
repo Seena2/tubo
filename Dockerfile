@@ -5,23 +5,20 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-# Copy dependency files and install production dependencies
+# Install only dependencies into /app/.venv (skips building src/tubo)
 COPY pyproject.toml uv.lock ./
 RUN uv sync --locked --no-install-project --no-dev
-
-# Copy application code and install project
-COPY app ./app
-RUN uv sync --locked --no-dev
 
 # Final lightweight runtime image
 FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
+# Copy the pre-built virtual environment and your Flask app folder
 COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/app /app/app
+COPY app ./app
 
 EXPOSE 5000
 
-# Explicitly run using the virtual environment's Python binary
 CMD ["/app/.venv/bin/python", "-m", "app.app"]
+

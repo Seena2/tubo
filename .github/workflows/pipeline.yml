@@ -1,0 +1,36 @@
+name: CI pipeline
+
+on:
+  push:
+    branches: [main, dev] 
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest #runs on fresh machine, no hidden state, no surpises from previous run
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6 #clones the repository into the runner, hence without the code pipeline has nothing to process
+      
+      - name: install uv
+        uses: astral-sh/setup-uv@v10.4.0 #installs uv
+        with:
+          enable-cache: true
+
+      # installs every dependency from uv.lock without modifying the lockfile. The --locked flag ensures CI fails if the lockfile is out of date. The --all-extras flag installs all optional dependency groups defined in pyproject.toml; if your project has no optional dependencies, this flag is harmless but unnecessary. The --dev flag includes development dependencies like pytest and ruff.
+      - run: uv sync --locked --all-extras --dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest
+
+      - name: List file
+        run: ls -la # view what the pipeline see, used for debuging
+
+      - name: echo message
+        run: echo "pipeline is working"

@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Hello,world!"
+    raise Exception("This is a test exception for demo") 
 
 
 if __name__ == "__main__":
